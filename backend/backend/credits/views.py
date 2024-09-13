@@ -56,6 +56,6 @@ def update_credit(request, id):
             serializer.save()
             return Response(serializer.data, status=status.HTTP_200_OK)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-    except Commande.DoesNotExist:
+    except Credit.DoesNotExist:
         return Response({"error": "Credit not found."}, status=status.HTTP_404_NOT_FOUND) 
     
