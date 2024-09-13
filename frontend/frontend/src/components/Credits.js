@@ -1,14 +1,27 @@
-import React, { Component } from 'react'
-import None from './None'
+import React, { Component, useState } from 'react'
+import None from './None';
+import axios from 'axios'
 
-export class Credits extends Component {
-  render() {
+const Credits = ()=>{
+
+  const [credits,setCredits]= useState([]);
+  const fetchCredits = () =>{
+     try {
+      
+      const response = axios.get('http://localhost:8000/')
+      setCredits(response.data)
+      }
+     catch (Exception ) {
+      console.log ("error = > " + Exception)
+     }
+  }
+
     return (
       <div>
-       <None/>
+
       </div>
     )
-  }
+  
 }
 
 export default Credits

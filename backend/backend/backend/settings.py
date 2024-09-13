@@ -68,6 +68,12 @@ INSTALLED_APPS = [
 
 
 ]
+CORS_ALLOW_METHODS= [
+    'GET',
+    'POST',
+    'PUT',
+    'DELETE',
+]
 
 CSRF_TRUSTED_ORIGINS = [
     'http://localhost:3000',  # Add your frontend's origin here
