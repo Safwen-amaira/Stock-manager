@@ -1,6 +1,6 @@
 import React, { Component, useState,useEffect } from 'react'
 import axios from 'axios'
-
+import None from "./None"
 
 const Credits = ()=>{
 
@@ -22,7 +22,8 @@ const Credits = ()=>{
   },[]);
     return (
       <div>
-            <h1>Testing API </h1>
+        <None/>
+
       </div>
     )
   

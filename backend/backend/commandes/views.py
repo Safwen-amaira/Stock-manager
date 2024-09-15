@@ -12,15 +12,33 @@ from rest_framework.response import Response
 from .models import Commande, Product
 from .serializers import CommandeSerializer
 
-
+from django.contrib.auth.models import User
 @api_view(['POST'])
+
 def create_commande(request):
+
     try:
         product_id = request.data.get('product')
-        quantity = int(request.data.get('quantity'))
+        quantity = request.data.get('quantity')
 
-        product = Product.objects.get(id=product_id)
-        stock = Stock.objects.get(product=product)
+        if not quantity:
+            return Response({"error": "Quantity is required."}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            quantity = int(quantity)
+        except ValueError:
+            return Response({"error": "Invalid quantity format."}, status=status.HTTP_400_BAD_REQUEST)
+
+        if quantity <= 0:
+            return Response({"error": "Quantity must be a positive number."}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            product = Product.objects.get(id=product_id)
+            stock = Stock.objects.get(product=product)
+        except Product.DoesNotExist:
+            return Response({"error": "Product not found."}, status=status.HTTP_400_BAD_REQUEST)
+        except Stock.DoesNotExist:
+            return Response({"error": "Stock record not found."}, status=status.HTTP_400_BAD_REQUEST)
 
         if stock.quantity < quantity:
             return Response({"error": "Not enough stock available."}, status=status.HTTP_400_BAD_REQUEST)
@@ -28,13 +46,13 @@ def create_commande(request):
         commande = Commande(
             product=product,
             quantity=quantity,
-            client_name=request.data.get('clientName'),
-            client_phone=request.data.get('clientPhone'),
-            client_address=request.data.get('clientAddress'),
-            price_sell=request.data.get('priceSell'),
-            commande_state='En_attente',
+            client_name=request.data.get('client_name'),
+            client_phone=request.data.get('client_phone'),
+            client_address=request.data.get('client_address'),
+            price_sell=request.data.get('price_sell'),
+            commande_state=request.data.get('commande_state', 'Pending'),
             user=request.user,
-            loss = request.data.get('loss')
+            loss=request.data.get('loss')
         )
         commande.save()
 
@@ -44,12 +62,6 @@ def create_commande(request):
         serializer = CommandeSerializer(commande)
         return Response(serializer.data, status=status.HTTP_201_CREATED)
 
-    except Product.DoesNotExist:
-        return Response({"error": "Product not found."}, status=status.HTTP_400_BAD_REQUEST)
-    except Stock.DoesNotExist:
-        return Response({"error": "Stock record not found."}, status=status.HTTP_400_BAD_REQUEST)
-    except ValueError:
-        return Response({"error": "Invalid quantity."}, status=status.HTTP_400_BAD_REQUEST)
     except Exception as e:
         return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
 

@@ -111,7 +111,10 @@ CORS_ALLOW_HEADERS = [
     
     # Add other headers as needed
 ]
-
+AUTHENTICATION_BACKENDS = [
+    'django.contrib.auth.backends.ModelBackend',
+    # other backends
+]
 
 
 MIDDLEWARE = [

@@ -29,6 +29,8 @@ class CustomTokenObtainPairView(TokenObtainPairView):
             'refresh': refresh_token,
             'is_staff': user.is_staff,
             'is_superuser': user.is_superuser,
+            'id':user.id,
+            
         }
 
         return Response(response_data, status=status.HTTP_200_OK)

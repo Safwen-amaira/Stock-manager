@@ -4,14 +4,14 @@ from products.models import Product
 
 class Commande(models.Model):
     product = models.ForeignKey(Product, on_delete=models.CASCADE)
-    quantity = models.PositiveIntegerField()
+    quantity = models.IntegerField()
     client_name = models.CharField(max_length=255)
     client_phone = models.CharField(max_length=20)
     client_address = models.TextField()
     price_sell = models.DecimalField(max_digits=10, decimal_places=2)
     created_at = models.DateTimeField(auto_now=True)
     commande_state = models.CharField(max_length=244, default='En_attente')
-    user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True)
+    user = models.CharField(max_length=234)
     loss = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
     profit = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
 

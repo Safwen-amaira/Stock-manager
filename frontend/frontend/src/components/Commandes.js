@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
 import Swal from 'sweetalert2';
 import {
@@ -8,13 +8,17 @@ import {
 import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
 
+const API_BASE_URL = 'http://localhost:8000/api';
+
 const Commandes = () => {
   const [commandes, setCommandes] = useState([]);
+  const currentUserId = localStorage.getItem('userId'); // Adjust based on where you store user ID
+
   const [products, setProducts] = useState([]);
   const [users, setUsers] = useState([]);
   const [newCommande, setNewCommande] = useState({
     product: null,
-    quantity: '',
+    quantity: 1,
     client_name: '',
     client_phone: '',
     client_address: '',
@@ -32,33 +36,36 @@ const Commandes = () => {
     fetchUsers();
   }, []);
 
-  const fetchCommandes = async () => {
+  const fetchCommandes = useCallback(async () => {
     try {
-      const response = await axios.get('http://localhost:8000/api/commandes/');
+      const response = await axios.get(`${API_BASE_URL}/commandes/`);
       setCommandes(response.data || []);
     } catch (error) {
       console.error('Failed to fetch commandes:', error);
+      Swal.fire('Error', 'Failed to fetch commandes', 'error');
     }
-  };
+  }, []);
 
-  const fetchProducts = async () => {
+  const fetchProducts = useCallback(async () => {
     try {
-      const response = await axios.get('http://localhost:8000/api/products/');
-      console.log('Fetched products:', response.data); // Log the data
-      setProducts(Array.isArray(response.data.results) ? response.data.results : []);
+      const response = await axios.get(`${API_BASE_URL}/products/`);
+      setProducts(response.data.results || []);
     } catch (error) {
       console.error('Failed to fetch products:', error);
+      Swal.fire('Error', 'Failed to fetch products', 'error');
     }
-  };
+  }, []);
+  
 
-  const fetchUsers = async () => {
+  const fetchUsers = useCallback(async () => {
     try {
-      const response = await axios.get('http://localhost:8000/api/list_users/');
+      const response = await axios.get(`${API_BASE_URL}/list_users/`);
       setUsers(response.data || []);
     } catch (error) {
       console.error('Failed to fetch users:', error);
+      Swal.fire('Error', 'Failed to fetch users', 'error');
     }
-  };
+  }, []);
 
   const userIdToUsername = users.reduce((acc, user) => {
     acc[user.id] = user.username;
@@ -82,40 +89,75 @@ const Commandes = () => {
     const { name, value } = e.target;
     setEditCommande(prevState => ({ ...prevState, [name]: value }));
   };
+  
 
-  const handleAddCommande = async () => {
-    try {
-      // Include loss only if the state is 'Retour'
-      const payload = { ...newCommande };
-      if (payload.commande_state !== 'Retour') {
-        delete payload.loss;
-      }
-      await axios.post('http://localhost:8000/api/api/commandes/', payload);
-      Swal.fire('Added!', 'The commande has been added.', 'success');
-      fetchCommandes();
-      handleAddModalClose();
-    } catch (error) {
-      console.error('Failed to add commande:', error);
-      Swal.fire('Error', 'There was a problem adding the commande.', 'error');
-    }
-  };
 
-  const handleUpdateCommande = async () => {
-    try {
-      // Include loss only if the state is 'Retour'
-      const payload = { ...editCommande };
-      if (payload.commande_state !== 'Retour') {
-        delete payload.loss;
-      }
-      await axios.put(`http://localhost:8000/api/commandes/update/${editCommande.id}/`, payload);
-      Swal.fire('Updated!', 'The commande has been updated.', 'success');
-      fetchCommandes();
-      handleEditModalClose();
-    } catch (error) {
-      console.error('Failed to update commande:', error);
-      Swal.fire('Error', 'There was a problem updating the commande.', 'error');
+
+ const handleAddCommande = async () => {
+  console.log('Access Token:', localStorage.getItem('access'));
+  console.log('Payload:', { ...newCommande, user: currentUserId });
+  try {
+    const accessToken = localStorage.getItem('access');
+    if (!accessToken) {
+      throw new Error('User must be logged in to add a commande.');
     }
-  };
+
+    const payload = { ...newCommande, user: currentUserId };
+
+    if (payload.commande_state !== 'Returned') {
+      delete payload.loss;
+    }
+
+    if (isNaN(payload.quantity) || payload.quantity <= 0) {
+      throw new Error('Invalid quantity');
+    }
+
+    if (isNaN(payload.price_sell) || payload.price_sell <= 0) {
+      throw new Error('Invalid price');
+    }
+
+    await axios.post(`${API_BASE_URL}/api/commandes/`, payload, {
+      headers: { Authorization: `Bearer ${accessToken}` },
+    });
+
+    Swal.fire('Added!', 'The commande has been added.', 'success');
+    fetchCommandes(); // Refresh commandes list
+    handleAddModalClose(); // Close modal
+    setNewCommande({
+      product: null,
+      quantity: 1,
+      client_name: '',
+      client_phone: '',
+      client_address: '',
+      price_sell: '',
+      commande_state: '',
+      loss: '',
+    }); // Clear form fields
+  } catch (error) {
+    console.error('Failed to add commande:', error);
+    Swal.fire('Error', error.message || 'There was a problem adding the commande.', 'error');
+  }
+};
+
+  
+  
+  
+const handleUpdateCommande = async () => {
+  try {
+    // Include loss only if the state is 'Retour'
+    const payload = { ...editCommande };
+    if (payload.commande_state !== 'Retour') {
+      delete payload.loss;
+    }
+    await axios.put(`http://localhost:8000/api/commandes/update/${editCommande.id}/`, payload);
+    Swal.fire('Updated!', 'The commande has been updated.', 'success');
+    fetchCommandes();
+    handleEditModalClose();
+  } catch (error) {
+    console.error('Failed to update commande:', error);
+    Swal.fire('Error', 'There was a problem updating the commande.', 'error');
+  }
+};
 
   const handleDeleteCommande = async (id) => {
     Swal.fire({
@@ -129,7 +171,7 @@ const Commandes = () => {
     }).then(async (result) => {
       if (result.isConfirmed) {
         try {
-          await axios.delete(`http://localhost:8000/api/commandes/${id}/`);
+          await axios.delete(`${API_BASE_URL}/commandes/${id}/`);
           Swal.fire('Deleted!', 'The commande has been deleted.', 'success');
           fetchCommandes();
         } catch (error) {
@@ -245,29 +287,29 @@ const Commandes = () => {
               value={newCommande.commande_state}
               onChange={handleInputChange}
             >
-              <MenuItem value="En Attente">En Attente</MenuItem>
-              <MenuItem value="Validée">Validée</MenuItem>
-              <MenuItem value="Expédiée">Expédiée</MenuItem>
-              <MenuItem value="Retour">Retour</MenuItem>
+              <MenuItem value="Pending">Pending</MenuItem>
+              <MenuItem value="Completed">Completed</MenuItem>
+              <MenuItem value="Returned">Returned</MenuItem>
             </Select>
           </FormControl>
-          {newCommande.commande_state === 'Retour' && (
+          {newCommande.commande_state === 'Returned' && (
             <TextField
               label="Loss"
               name="loss"
-              type="number"
               value={newCommande.loss}
               onChange={handleInputChange}
               fullWidth
               margin="normal"
             />
           )}
-          <Button variant="contained" color="primary" onClick={handleAddCommande}>
-            Add
-          </Button>
-          <Button variant="outlined" color="secondary" onClick={handleAddModalClose}>
-            Cancel
-          </Button>
+          <Box mt={2}>
+            <Button onClick={handleAddCommande} variant="contained" color="primary">
+              Add
+            </Button>
+            <Button onClick={handleAddModalClose} variant="outlined" color="secondary">
+              Cancel
+            </Button>
+          </Box>
         </Box>
       </Modal>
       {/* Edit Commande Modal */}
@@ -368,7 +410,7 @@ const modalStyle = {
   transform: 'translate(-50%, -50%)',
   width: 400,
   bgcolor: 'background.paper',
-  border: '2px solid #000',
+  borderRadius: 1,
   boxShadow: 24,
   p: 4,
 };

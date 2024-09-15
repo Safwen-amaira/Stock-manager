@@ -123,6 +123,21 @@ const Sidebar = ({ open, handleDrawerToggle }) => {
 
 
 
+        <Divider />
+
+
+        <StyledListItem
+          button
+          component={Link}
+          to="/dashboard-admin/products"
+          active={pathname === '/dashboard-admin/products'}
+        >
+          <ListItemIcon><ConnectWithoutContactIcon /></ListItemIcon>
+          <ListItemText primary="produits" />
+        </StyledListItem>
+
+        <Divider />
+
         <StyledListItem
           button
           component={Link}
