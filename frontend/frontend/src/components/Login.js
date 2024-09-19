@@ -32,7 +32,7 @@ const Login = () => {
       localStorage.setItem('refresh', response.data.refresh);
       localStorage.setItem('is_staff', response.data.is_staff); // Store user role
       localStorage.setItem('is_superuser', response.data.is_superuser); // Store user role
-      localStorage.setItem('userId', response.data.id); // Store user ID if available
+      localStorage.setItem('userId', response.data.uid); // Store user ID if available
 
       navigate('/dashboard-admin');
     } catch (error) {

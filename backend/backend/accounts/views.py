@@ -29,7 +29,7 @@ class CustomTokenObtainPairView(TokenObtainPairView):
             'refresh': refresh_token,
             'is_staff': user.is_staff,
             'is_superuser': user.is_superuser,
-            'id':user.id,
+            'uid':user.id,
             
         }
 

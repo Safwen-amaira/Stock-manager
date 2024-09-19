@@ -18,7 +18,7 @@ import DialogContent from '@mui/material/DialogContent';
 import DialogActions from '@mui/material/DialogActions';
 import Button from '@mui/material/Button';
 
-const stateOptions = ['Retour', 'En_attente', 'payed', 'Verified'];
+const stateOptions = ['Retour', 'En_attente', 'payee', 'Verified'];
 
 const ClientsList = () => {
   const [clients, setClients] = useState([]);
@@ -123,7 +123,7 @@ const ClientsList = () => {
 
   const calculatePayedPercentage = (commandes) => {
     if (commandes.length === 0) return 0;
-    const payedCount = commandes.filter((commande) => commande.commande_state === 'Payed').length;
+    const payedCount = commandes.filter((commande) => commande.commande_state === 'payee').length;
     return (payedCount / commandes.length) * 100;
   };
 

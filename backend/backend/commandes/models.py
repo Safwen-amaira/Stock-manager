@@ -11,8 +11,8 @@ class Commande(models.Model):
     price_sell = models.DecimalField(max_digits=10, decimal_places=2)
     created_at = models.DateTimeField(auto_now=True)
     commande_state = models.CharField(max_length=244, default='En_attente')
-    user = models.CharField(max_length=234)
-    loss = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
+    user = models.ForeignKey(User, on_delete=models.CASCADE, null=True)  # Updated field type
+    loss = models.FloatField(blank=True,default=0,null=True)
     profit = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
 
     def calculate_profit_or_loss(self):

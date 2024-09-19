@@ -19,8 +19,11 @@ import ClientsList from './components/ClientsList';
 import Credits from './components/Credits';
 import HelloWorld from './components/HelloWorld';
 import LOGISTICODASH from './components/LOGISTICODASH';
-
+import axios from 'axios';
+import Partners from './components/Partners';
 const theme = createTheme(); 
+
+axios.defaults.withCredentials = true;
 
 function App() {
     return (
@@ -42,6 +45,8 @@ function App() {
                             <Route path="list" element={<ClientsList/>}/>
                             <Route path='Credits' element={<Credits/>}/>
                             <Route path='logistiko/dashboard' element={<LOGISTICODASH/>} />
+                            <Route path='partners' element={<Partners/>} />
+
                         </Route>
                     <Route path='*' element={<None/>}/>
                     <Route path='/helloworld' element={<HelloWorld/>}/>

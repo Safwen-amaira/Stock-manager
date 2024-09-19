@@ -6,20 +6,16 @@ from rest_framework import status
 from django.views.decorators.csrf import csrf_exempt
 from django.conf import settings
 import json
-from stock.models import Stock  
-from rest_framework.decorators import api_view
-from rest_framework.response import Response
-from .models import Commande, Product
-from .serializers import CommandeSerializer
-
+from stock.models import Stock
 from django.contrib.auth.models import User
+
 @api_view(['POST'])
-
 def create_commande(request):
-
     try:
         product_id = request.data.get('product')
         quantity = request.data.get('quantity')
+        loss = request.data.get('loss')
+        user_uid = request.data.get('user')  # Accept UID from request data
 
         if not quantity:
             return Response({"error": "Quantity is required."}, status=status.HTTP_400_BAD_REQUEST)
@@ -43,6 +39,12 @@ def create_commande(request):
         if stock.quantity < quantity:
             return Response({"error": "Not enough stock available."}, status=status.HTTP_400_BAD_REQUEST)
 
+        # Retrieve the user by UID
+        try:
+            user = User.objects.get(id=user_uid)
+        except User.DoesNotExist:
+            return Response({"error": "User not found."}, status=status.HTTP_400_BAD_REQUEST)
+
         commande = Commande(
             product=product,
             quantity=quantity,
@@ -51,8 +53,8 @@ def create_commande(request):
             client_address=request.data.get('client_address'),
             price_sell=request.data.get('price_sell'),
             commande_state=request.data.get('commande_state', 'Pending'),
-            user=request.user,
-            loss=request.data.get('loss')
+            user=user,
+            loss=loss
         )
         commande.save()
 
@@ -64,14 +66,13 @@ def create_commande(request):
 
     except Exception as e:
         return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
-
+    
 @api_view(['GET'])
 def get_all_commandes(request):
     commandes = Commande.objects.all()
     serializer = CommandeSerializer(commandes, many=True)
     return Response(serializer.data, status=status.HTTP_200_OK)
 
-# View to get a specific commande by ID
 @api_view(['GET'])
 def get_commande_by_id(request, id):
     try:
@@ -91,8 +92,8 @@ def update_commande(request, id):
             return Response(serializer.data, status=status.HTTP_200_OK)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
     except Commande.DoesNotExist:
-        return Response({"error": "Commande not found."}, status=status.HTTP_404_NOT_FOUND) 
-    
+        return Response({"error": "Commande not found."}, status=status.HTTP_404_NOT_FOUND)
+
 @csrf_exempt
 @api_view(['GET', 'POST'])
 def facebook_webhook(request):

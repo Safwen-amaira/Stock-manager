@@ -2,23 +2,22 @@ import React, { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
 import Swal from 'sweetalert2';
 import {
-  Box, Button, TextField, FormControl, InputLabel, Select, MenuItem, Modal, Typography,
-  Autocomplete, TableContainer, Table, TableHead, TableRow, TableCell, TableBody, Paper, IconButton
+  Box, Button, TextField, TableContainer, Table, TableHead, TableRow, TableCell, TableBody, Paper, IconButton,
+  Modal, Typography, MenuItem
 } from '@mui/material';
 import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
+import Cookies from 'js-cookie';
 
 const API_BASE_URL = 'http://localhost:8000/api';
 
 const Commandes = () => {
   const [commandes, setCommandes] = useState([]);
-  const [searchQuery, setSearchQuery] = useState(''); // Search state
-  const currentUserId = localStorage.getItem('userId');
-
+  const [searchQuery, setSearchQuery] = useState('');
   const [products, setProducts] = useState([]);
   const [users, setUsers] = useState([]);
   const [newCommande, setNewCommande] = useState({
-    product: null,
+    product: '',
     quantity: 1,
     client_name: '',
     client_phone: '',
@@ -27,9 +26,22 @@ const Commandes = () => {
     commande_state: '',
     loss: ''
   });
-  const [editCommande, setEditCommande] = useState(null);
+  const [editCommande, setEditCommande] = useState({
+    id: '',
+    product: '',
+    quantity: 1,
+    client_name: '',
+    client_phone: '',
+    client_address: '',
+    price_sell: '',
+    commande_state: '',
+    loss: ''
+  });
   const [showAddModal, setShowAddModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
+
+  const currentUserId = localStorage.getItem('userId');
+  axios.defaults.headers.common['X-CSRFToken'] = Cookies.get('csrftoken');
 
   useEffect(() => {
     fetchCommandes();
@@ -50,7 +62,8 @@ const Commandes = () => {
   const fetchProducts = useCallback(async () => {
     try {
       const response = await axios.get(`${API_BASE_URL}/products/`);
-      setProducts(response.data.results || []);
+      console.log('Products response:', response.data.results); // Log response to verify
+      setProducts(Array.isArray(response.data.results) ? response.data.results : []);
     } catch (error) {
       console.error('Failed to fetch products:', error);
       Swal.fire('Error', 'Failed to fetch products', 'error');
@@ -82,122 +95,72 @@ const Commandes = () => {
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
-    setNewCommande(prevState => ({ ...prevState, [name]: value }));
+    setNewCommande((prev) => ({ ...prev, [name]: value }));
   };
 
-  const handleEditChange = (e) => {
+  const handleEditInputChange = (e) => {
     const { name, value } = e.target;
-    setEditCommande(prevState => ({ ...prevState, [name]: value }));
+    setEditCommande((prev) => ({ ...prev, [name]: value }));
   };
 
-  const handleAddCommande = async () => {
+  const handleSubmitAdd = async () => {
     try {
-      const accessToken = localStorage.getItem('access');
-      if (!accessToken) {
-        throw new Error('User must be logged in to add a commande.');
-      }
-
-      const payload = { ...newCommande, user: currentUserId };
-
-      if (payload.commande_state !== 'Returned') {
-        delete payload.loss;
-      }
-
-      if (isNaN(payload.quantity) || payload.quantity <= 0) {
-        throw new Error('Invalid quantity');
-      }
-
-      if (isNaN(payload.price_sell) || payload.price_sell <= 0) {
-        throw new Error('Invalid price');
-      }
-
-      await axios.post(`${API_BASE_URL}/api/commandes/`, payload, {
-        headers: { Authorization: `Bearer ${accessToken}` },
+      await axios.post(`${API_BASE_URL}/api/commandes/`, {
+        ...newCommande,
+        user: currentUserId,
       });
-
-      Swal.fire('Added!', 'The commande has been added.', 'success');
       fetchCommandes();
+      Swal.fire('Success', 'Commande added successfully', 'success');
       handleAddModalClose();
-      setNewCommande({
-        product: null,
-        quantity: 1,
-        client_name: '',
-        client_phone: '',
-        client_address: '',
-        price_sell: '',
-        commande_state: '',
-        loss: ''
-      });
     } catch (error) {
       console.error('Failed to add commande:', error);
-      Swal.fire('Error', error.message || 'There was a problem adding the commande.', 'error');
+      Swal.fire('Error', 'Failed to add commande', 'error');
     }
   };
 
-  const handleUpdateCommande = async () => {
+  const handleSubmitEdit = async () => {
     try {
-      const payload = { ...editCommande };
-      if (payload.commande_state !== 'Retour') {
-        delete payload.loss;
-      }
-      await axios.put(`${API_BASE_URL}/commandes/update/${editCommande.id}/`, payload);
-      Swal.fire('Updated!', 'The commande has been updated.', 'success');
+      await axios.put(`${API_BASE_URL}/commandes/update/${editCommande.id}/`, editCommande);
       fetchCommandes();
       handleEditModalClose();
+      Swal.fire('Success', 'Commande updated successfully', 'success');
     } catch (error) {
       console.error('Failed to update commande:', error);
-      Swal.fire('Error', 'There was a problem updating the commande.', 'error');
+      Swal.fire('Error', 'Failed to update commande', 'error');
     }
   };
 
-  const handleDeleteCommande = async (id) => {
-    Swal.fire({
-      title: 'Are you sure?',
-      text: 'You will not be able to recover this commande!',
-      icon: 'warning',
-      showCancelButton: true,
-      confirmButtonColor: '#3085d6',
-      cancelButtonColor: '#d33',
-      confirmButtonText: 'Yes, delete it!'
-    }).then(async (result) => {
-      if (result.isConfirmed) {
-        try {
-          await axios.delete(`${API_BASE_URL}/commandes/${id}/`);
-          Swal.fire('Deleted!', 'The commande has been deleted.', 'success');
-          fetchCommandes();
-        } catch (error) {
-          console.error('Failed to delete commande:', error);
-          Swal.fire('Error', 'There was a problem deleting the commande.', 'error');
-        }
-      }
-    });
+  const handleDelete = async (id) => {
+    try {
+      await axios.delete(`${API_BASE_URL}/commandes/${id}/`);
+      fetchCommandes();
+    } catch (error) {
+      console.error('Failed to delete commande:', error);
+      Swal.fire('Error', 'Failed to delete commande', 'error');
+    }
   };
 
-  // Filter commandes based on search query
-  const filteredCommandes = commandes.filter((commande) =>
-    commande.client_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    commande.client_phone.includes(searchQuery)
+  const handleSearch = (e) => setSearchQuery(e.target.value);
+
+  const filteredCommandes = commandes.filter(commande =>
+    commande.client_name.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
+  const isLossVisible = (state) => state === 'retour';
+
   return (
-    <Box p={3}>
-      
+    <Box sx={{ p: 2 }}>
       <Button variant="contained" color="primary" onClick={handleAddModalOpen}>
         Add Commande
       </Button>
-      <br/>
-      <br/>
-      <br/>
       <TextField
-        label="Search by Name or Phone"
+        label="Search by Client Name"
         variant="outlined"
+        size="small"
         fullWidth
-        margin="normal"
-        value={searchQuery}
-        onChange={(e) => setSearchQuery(e.target.value)}
+        sx={{ mb: 2, mt: 2 }}
+        onChange={handleSearch}
       />
-      <br/>
-      <br/>
 
       <TableContainer component={Paper}>
         <Table>
@@ -206,30 +169,32 @@ const Commandes = () => {
               <TableCell>Product</TableCell>
               <TableCell>Quantity</TableCell>
               <TableCell>Client Name</TableCell>
-              <TableCell>Phone</TableCell>
-              <TableCell>Address</TableCell>
-              <TableCell>Price</TableCell>
-              <TableCell>State</TableCell>
-              <TableCell>User</TableCell>
+              <TableCell>Client Phone</TableCell>
+              <TableCell>Client Address</TableCell>
+              <TableCell>Price Sell</TableCell>
+              <TableCell>Commande State</TableCell>
+              <TableCell>Loss</TableCell>
+              <TableCell>Ajouté par</TableCell>
               <TableCell>Actions</TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
             {filteredCommandes.map((commande) => (
               <TableRow key={commande.id}>
-                <TableCell>{products.find(p => p.id === commande.product)?.name || 'Unknown Product'}</TableCell>
-                <TableCell>{commande.quantity}</TableCell>
-                <TableCell>{commande.client_name}</TableCell>
-                <TableCell>{commande.client_phone}</TableCell>
-                <TableCell>{commande.client_address}</TableCell>
-                <TableCell>{commande.price_sell}</TableCell>
-                <TableCell>{commande.commande_state}</TableCell>
-                <TableCell>{userIdToUsername[commande.user] || 'Unknown User'}</TableCell>
+                <TableCell>{commande.product || ''}</TableCell>
+                <TableCell>{commande.quantity || ''}</TableCell>
+                <TableCell>{commande.client_name || ''}</TableCell>
+                <TableCell>{commande.client_phone || ''}</TableCell>
+                <TableCell>{commande.client_address || ''}</TableCell>
+                <TableCell>{commande.price_sell || ''}</TableCell>
+                <TableCell>{commande.commande_state || ''}</TableCell>
+                <TableCell>{isLossVisible(commande.commande_state) ? commande.loss || '' : '-'}</TableCell>
+                <TableCell>{userIdToUsername[commande.user] || 'Unknown'}</TableCell>
                 <TableCell>
                   <IconButton onClick={() => handleEditModalOpen(commande)}>
                     <EditIcon />
                   </IconButton>
-                  <IconButton onClick={() => handleDeleteCommande(commande.id)}>
+                  <IconButton onClick={() => handleDelete(commande.id)}>
                     <DeleteIcon />
                   </IconButton>
                 </TableCell>
@@ -238,193 +203,189 @@ const Commandes = () => {
           </TableBody>
         </Table>
       </TableContainer>
-      {/* Add Commande Modal */}
+
       <Modal open={showAddModal} onClose={handleAddModalClose}>
-        <Box sx={modalStyle}>
+        <Box sx={{ p: 3, maxWidth: 500, mx: 'auto', mt: 5, bgcolor: 'background.paper', boxShadow: 24 }}>
           <Typography variant="h6">Add Commande</Typography>
-          <FormControl fullWidth margin="normal">
-            <Autocomplete
-              options={products}
-              getOptionLabel={(option) => option.name || ''}
-              onChange={(e, value) => setNewCommande(prev => ({ ...prev, product: value?.id || null }))}
-              renderInput={(params) => <TextField {...params} label="Product" />}
-            />
-          </FormControl>
+          <TextField
+            label="Product"
+            name="product"
+            select
+            fullWidth
+            value={newCommande.product || ''}
+            onChange={(e) => setNewCommande({ ...newCommande, product: e.target.value })}
+            sx={{ mb: 2 }}
+          >
+            {products.map((product) => (
+              <MenuItem key={product.id} value={product.id}>{product.name}</MenuItem>
+            ))}
+          </TextField>
           <TextField
             label="Quantity"
             name="quantity"
             type="number"
-            value={newCommande.quantity}
-            onChange={handleInputChange}
             fullWidth
-            margin="normal"
+            value={newCommande.quantity || 1}
+            onChange={handleInputChange}
+            sx={{ mb: 2 }}
           />
           <TextField
             label="Client Name"
             name="client_name"
-            value={newCommande.client_name}
-            onChange={handleInputChange}
             fullWidth
-            margin="normal"
+            value={newCommande.client_name || ''}
+            onChange={handleInputChange}
+            sx={{ mb: 2 }}
           />
           <TextField
             label="Client Phone"
             name="client_phone"
-            value={newCommande.client_phone}
-            onChange={handleInputChange}
             fullWidth
-            margin="normal"
+            value={newCommande.client_phone || ''}
+            onChange={handleInputChange}
+            sx={{ mb: 2 }}
           />
           <TextField
             label="Client Address"
             name="client_address"
-            value={newCommande.client_address}
-            onChange={handleInputChange}
             fullWidth
-            margin="normal"
+            value={newCommande.client_address || ''}
+            onChange={handleInputChange}
+            sx={{ mb: 2 }}
           />
           <TextField
-            label="Price"
+            label="Price Sell"
             name="price_sell"
-            type="number"
-            value={newCommande.price_sell}
-            onChange={handleInputChange}
             fullWidth
-            margin="normal"
+            value={newCommande.price_sell || ''}
+            onChange={handleInputChange}
+            sx={{ mb: 2 }}
           />
-          <FormControl fullWidth margin="normal">
-            <InputLabel>State</InputLabel>
-            <Select
-              name="commande_state"
-              value={newCommande.commande_state}
-              onChange={handleInputChange}
-            >
-              <MenuItem value="En_attente">En_attente</MenuItem>
-              <MenuItem value="Payed">Payée</MenuItem>
-              <MenuItem value="Retour">Retour</MenuItem>
-            </Select>
-          </FormControl>
-          {newCommande.commande_state === 'Retour' && (
+          <TextField
+            label="Commande State"
+            name="commande_state"
+            select
+            fullWidth
+            value={newCommande.commande_state || ''}
+            onChange={handleInputChange}
+            sx={{ mb: 2 }}
+          >
+            <MenuItem value="verifier avec le client">Vérifier avec le client</MenuItem>
+            <MenuItem value="payee">Payée</MenuItem>
+            <MenuItem value="en cours de livraison">En cours de livraison</MenuItem>
+            <MenuItem value="retour">Retour</MenuItem>
+            <MenuItem value="En transit">En transit</MenuItem>
+            <MenuItem value="En dépot">En dépot</MenuItem>
+
+
+          </TextField>
+          {isLossVisible(newCommande.commande_state) && (
             <TextField
               label="Loss"
               name="loss"
-              value={newCommande.loss}
-              onChange={handleInputChange}
               fullWidth
-              margin="normal"
+              value={newCommande.loss || ''}
+              onChange={handleInputChange}
+              sx={{ mb: 2 }}
             />
           )}
-          <Box mt={2}>
-            <Button onClick={handleAddCommande} variant="contained" color="primary">
-              Add
-            </Button>
-            <Button onClick={handleAddModalClose} variant="outlined" color="secondary">
-              Cancel
-            </Button>
-          </Box>
+          <Button variant="contained" color="primary" onClick={handleSubmitAdd}>
+            Submit
+          </Button>
         </Box>
       </Modal>
-      {/* Edit Commande Modal */}
+
       <Modal open={showEditModal} onClose={handleEditModalClose}>
-        <Box sx={modalStyle}>
+        <Box sx={{ p: 3, maxWidth: 500, mx: 'auto', mt: 5, bgcolor: 'background.paper', boxShadow: 24 }}>
           <Typography variant="h6">Edit Commande</Typography>
-          <FormControl fullWidth margin="normal">
-            <Autocomplete
-              options={products}
-              getOptionLabel={(option) => option.name || ''}
-              value={products.find(p => p.id === editCommande?.product) || null}
-              onChange={(e, value) => setEditCommande(prev => ({ ...prev, product: value?.id || null }))}
-              renderInput={(params) => <TextField {...params} label="Product" />}
-            />
-          </FormControl>
+          <TextField
+            label="Product"
+            name="product"
+            select
+            fullWidth
+            value={editCommande.product || ''}
+            onChange={handleEditInputChange}
+            sx={{ mb: 2 }}
+          >
+            {products.map((product) => (
+              <MenuItem key={product.id} value={product.id}>{product.name}</MenuItem>
+            ))}
+          </TextField>
           <TextField
             label="Quantity"
             name="quantity"
             type="number"
-            value={editCommande?.quantity || ''}
-            onChange={handleEditChange}
             fullWidth
-            margin="normal"
+            value={editCommande.quantity || 1}
+            onChange={handleEditInputChange}
+            sx={{ mb: 2 }}
           />
           <TextField
             label="Client Name"
             name="client_name"
-            value={editCommande?.client_name || ''}
-            onChange={handleEditChange}
             fullWidth
-            margin="normal"
+            value={editCommande.client_name || ''}
+            onChange={handleEditInputChange}
+            sx={{ mb: 2 }}
           />
           <TextField
             label="Client Phone"
             name="client_phone"
-            value={editCommande?.client_phone || ''}
-            onChange={handleEditChange}
             fullWidth
-            margin="normal"
+            value={editCommande.client_phone || ''}
+            onChange={handleEditInputChange}
+            sx={{ mb: 2 }}
           />
           <TextField
             label="Client Address"
             name="client_address"
-            value={editCommande?.client_address || ''}
-            onChange={handleEditChange}
             fullWidth
-            margin="normal"
+            value={editCommande.client_address || ''}
+            onChange={handleEditInputChange}
+            sx={{ mb: 2 }}
           />
           <TextField
-            label="Price"
+            label="Price Sell"
             name="price_sell"
-            type="number"
-            value={editCommande?.price_sell || ''}
-            onChange={handleEditChange}
             fullWidth
-            margin="normal"
+            value={editCommande.price_sell || ''}
+            onChange={handleEditInputChange}
+            sx={{ mb: 2 }}
           />
-          <FormControl fullWidth margin="normal">
-            <InputLabel>State</InputLabel>
-            <Select
-              name="commande_state"
-              value={editCommande?.commande_state || ''}
-              onChange={handleEditChange}
-            >
-              <MenuItem value="En_Attente">En Attente</MenuItem>
-              <MenuItem value="Payed">Validée</MenuItem>
-              <MenuItem value="Expédiée">Expédiée</MenuItem>
-              <MenuItem value="Retour">Retour</MenuItem>
-            </Select>
-          </FormControl>
-          {editCommande?.commande_state === 'Retour' && (
+          <TextField
+            label="Commande State"
+            name="commande_state"
+            select
+            fullWidth
+            value={editCommande.commande_state || ''}
+            onChange={handleEditInputChange}
+            sx={{ mb: 2 }}
+          >
+            
+            <MenuItem value="verifier avec le client">Vérifier avec le client</MenuItem>
+            <MenuItem value="payee">Payée</MenuItem>
+            <MenuItem value="en cours de livraison">En cours de livraison</MenuItem>
+            <MenuItem value="retour">Retour</MenuItem>
+            <MenuItem value="En transit">En transit</MenuItem>
+            <MenuItem value="En dépot">En dépot</MenuItem>
+          </TextField>
+          {isLossVisible(editCommande.commande_state) && (
             <TextField
               label="Loss"
               name="loss"
-              type="number"
-              value={editCommande?.loss || ''}
-              onChange={handleEditChange}
               fullWidth
-              margin="normal"
+              value={editCommande.loss || ''}
+              onChange={handleEditInputChange}
+              sx={{ mb: 2 }}
             />
           )}
-          <Button variant="contained" color="primary" onClick={handleUpdateCommande}>
-            Save
-          </Button>
-          <Button variant="outlined" color="secondary" onClick={handleEditModalClose}>
-            Cancel
+          <Button variant="contained" color="primary" onClick={handleSubmitEdit}>
+            Save Changes
           </Button>
         </Box>
       </Modal>
     </Box>
   );
-};
-
-const modalStyle = {
-  position: 'absolute',
-  top: '50%',
-  left: '50%',
-  transform: 'translate(-50%, -50%)',
-  width: 400,
-  bgcolor: 'background.paper',
-  borderRadius: 1,
-  boxShadow: 24,
-  p: 4,
 };
 
 export default Commandes;

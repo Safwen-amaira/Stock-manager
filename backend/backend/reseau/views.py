@@ -18,7 +18,7 @@ def create_new_reseau(request):
         email = request.data.get('email')
         adresse = request.data.get('adresse')
         webSite = request.data.get('webSite')
-        conctract_begin = request.data.get('conctract_begin')
+        contract_begin = request.data.get('contract_begin')
         contract_end = request.data.get('contract_end')
         reseau = Reseau(
             nom=nom,
@@ -30,7 +30,7 @@ def create_new_reseau(request):
             adresse = adresse, 
             webSite = webSite, 
             contract_end = contract_end, 
-            conctract_begin = conctract_begin , 
+            contract_begin = contract_begin , 
 
 
         )
