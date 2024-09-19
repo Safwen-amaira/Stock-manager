@@ -1,19 +1,21 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { Drawer, List, ListItem, ListItemIcon, ListItemText, Divider, IconButton, useMediaQuery, useTheme, styled, Button } from '@mui/material';
-import { Menu as MenuIcon, Home as HomeIcon, AttachMoney as AttachMoneyIcon, Inventory as InventoryIcon, Paid as PaidIcon } from '@mui/icons-material';
+import { Drawer, List, ListItem, ListItemIcon, ListItemText, Divider, useMediaQuery, useTheme, styled, Accordion, AccordionSummary, AccordionDetails } from '@mui/material';
+import { Home as HomeIcon, Paid as PaidIcon, Inventory as InventoryIcon } from '@mui/icons-material';
 import LocalShippingSharpIcon from '@mui/icons-material/LocalShippingSharp';
 import KeyboardReturnIcon from '@mui/icons-material/KeyboardReturn';
 import FormatListBulletedIcon from '@mui/icons-material/FormatListBulleted';
-import PeopleIcon from '@mui/icons-material/People'; // Import PeopleIcon for User Manager
+import PeopleIcon from '@mui/icons-material/People';
 import ErrorOutlineIcon from '@mui/icons-material/ErrorOutline';
 import ConnectWithoutContactIcon from '@mui/icons-material/ConnectWithoutContact';
 import SentimentDissatisfiedIcon from '@mui/icons-material/SentimentDissatisfied';
-const drawerWidth = 240;
+import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
+import GroupIcon from '@mui/icons-material/Group';
+import LocalGroceryStoreIcon from '@mui/icons-material/LocalGroceryStore';
 
+import HandshakeIcon from '@mui/icons-material/Handshake';
+const drawerWidth = 270;
 
-
-// Styled ListItem for active state
 const StyledListItem = styled(ListItem)(({ theme, active }) => ({
   backgroundColor: active ? theme.palette.action.selected : 'transparent',
   '&:hover': {
@@ -28,6 +30,7 @@ const Sidebar = ({ open, handleDrawerToggle }) => {
   const navigate = useNavigate();
 
   const [isAdmin, setIsAdmin] = useState(false);
+  const [expanded, setExpanded] = useState(false);
 
   useEffect(() => {
     const accessToken = localStorage.getItem('access');
@@ -41,7 +44,7 @@ const Sidebar = ({ open, handleDrawerToggle }) => {
       is_superuser: localStorage.getItem('is_superuser') === 'true',
     };
 
-    setIsAdmin(userRole.is_superuser); // You can use userRole.is_staff if you want to include both conditions
+    setIsAdmin(userRole.is_superuser);
   }, [navigate]);
 
   const handleLogout = () => {
@@ -71,6 +74,8 @@ const Sidebar = ({ open, handleDrawerToggle }) => {
       }}
     >
       <List>
+
+
         <StyledListItem
           button
           component={Link}
@@ -92,11 +97,7 @@ const Sidebar = ({ open, handleDrawerToggle }) => {
           <ListItemText primary="Totals" />
         </StyledListItem>
 
-     
-
-
         <Divider />
-
 
         <StyledListItem
           button
@@ -118,13 +119,8 @@ const Sidebar = ({ open, handleDrawerToggle }) => {
           <ListItemIcon><InventoryIcon /></ListItemIcon>
           <ListItemText primary="Stock" />
         </StyledListItem>
-  
-        <Divider />
-
-
 
         <Divider />
-
 
         <StyledListItem
           button
@@ -133,7 +129,7 @@ const Sidebar = ({ open, handleDrawerToggle }) => {
           active={pathname === '/dashboard-admin/products'}
         >
           <ListItemIcon><ConnectWithoutContactIcon /></ListItemIcon>
-          <ListItemText primary="produits" />
+          <ListItemText primary="Produits" />
         </StyledListItem>
 
         <Divider />
@@ -149,7 +145,18 @@ const Sidebar = ({ open, handleDrawerToggle }) => {
         </StyledListItem>
 
         <Divider />
-
+                
+      <StyledListItem
+                button
+                component={Link}
+                to="/dashboard-admin/logistiko/dashboard"
+                active={pathname === '/dashboard-admin/logistiko/dashboard'}
+              >
+                <ListItemIcon><HandshakeIcon /></ListItemIcon>
+                <ListItemText primary="Logistiko" />
+                
+              </StyledListItem>
+              <Divider />
 
         <StyledListItem
           button
@@ -160,8 +167,9 @@ const Sidebar = ({ open, handleDrawerToggle }) => {
           <ListItemIcon><ConnectWithoutContactIcon /></ListItemIcon>
           <ListItemText primary="Réseau" />
         </StyledListItem>
-
         <Divider />
+
+
 
 
         {isAdmin && (
@@ -189,15 +197,12 @@ const Sidebar = ({ open, handleDrawerToggle }) => {
         </StyledListItem>
         <Divider />
 
-
         <ListItem button onClick={handleLogout}>
           <ListItemIcon><KeyboardReturnIcon /></ListItemIcon>
           <ListItemText primary="Logout" />
         </ListItem>
         
-
         <Divider />
-
       </List>
     </Drawer>
   );

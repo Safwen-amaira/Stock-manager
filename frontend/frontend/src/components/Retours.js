@@ -14,7 +14,7 @@ const Retours = () => {
   useEffect(() => {
     const fetchRetours = async () => {
       try {
-        const response = await fetch(`http://localhost:8000/api/retours/?page=${page}`);
+        const response = await fetch(`http://localhost:8000/api/retours/`);
         if (!response.ok) {
           throw new Error('Network response was not ok');
         }

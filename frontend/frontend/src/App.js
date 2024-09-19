@@ -18,6 +18,7 @@ import None from './components/None';
 import ClientsList from './components/ClientsList';
 import Credits from './components/Credits';
 import HelloWorld from './components/HelloWorld';
+import LOGISTICODASH from './components/LOGISTICODASH';
 
 const theme = createTheme(); 
 
@@ -40,7 +41,7 @@ function App() {
                             <Route path='*' element={<None/>}/>
                             <Route path="list" element={<ClientsList/>}/>
                             <Route path='Credits' element={<Credits/>}/>
-
+                            <Route path='logistiko/dashboard' element={<LOGISTICODASH/>} />
                         </Route>
                     <Route path='*' element={<None/>}/>
                     <Route path='/helloworld' element={<HelloWorld/>}/>

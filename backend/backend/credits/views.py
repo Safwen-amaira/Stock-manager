@@ -6,25 +6,16 @@ from rest_framework.response import Response
 from .models import Credit
 from .serializers import CreditSerializers
 
-
 @api_view(['POST'])
 def create_new_credit(request):
     try:
-        profitaire = request.data.get('profitaire')
-        valeur = int(request.data.get('valeur'))
-        is_Money =bool(request.data.get('is_Money'))
+        serializer = CreditSerializers(data=request.data)  # Pass data, not the instance
 
-        Credit = Credit(
-            profitaire=profitaire,
-            is_Money=is_Money,
-            valeur=request.data.get('valeur'),
+        if serializer.is_valid():  
+            serializer.save() 
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
 
-        )
-        credits.save()
-
- 
-        serializer = CreditSerializers(credits)
-        return Response(serializer.data, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
     except Exception as e:
         return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)

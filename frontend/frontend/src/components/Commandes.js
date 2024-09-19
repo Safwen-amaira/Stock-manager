@@ -12,7 +12,8 @@ const API_BASE_URL = 'http://localhost:8000/api';
 
 const Commandes = () => {
   const [commandes, setCommandes] = useState([]);
-  const currentUserId = localStorage.getItem('userId'); // Adjust based on where you store user ID
+  const [searchQuery, setSearchQuery] = useState(''); // Search state
+  const currentUserId = localStorage.getItem('userId');
 
   const [products, setProducts] = useState([]);
   const [users, setUsers] = useState([]);
@@ -55,7 +56,6 @@ const Commandes = () => {
       Swal.fire('Error', 'Failed to fetch products', 'error');
     }
   }, []);
-  
 
   const fetchUsers = useCallback(async () => {
     try {
@@ -89,75 +89,66 @@ const Commandes = () => {
     const { name, value } = e.target;
     setEditCommande(prevState => ({ ...prevState, [name]: value }));
   };
-  
 
+  const handleAddCommande = async () => {
+    try {
+      const accessToken = localStorage.getItem('access');
+      if (!accessToken) {
+        throw new Error('User must be logged in to add a commande.');
+      }
 
+      const payload = { ...newCommande, user: currentUserId };
 
- const handleAddCommande = async () => {
-  console.log('Access Token:', localStorage.getItem('access'));
-  console.log('Payload:', { ...newCommande, user: currentUserId });
-  try {
-    const accessToken = localStorage.getItem('access');
-    if (!accessToken) {
-      throw new Error('User must be logged in to add a commande.');
+      if (payload.commande_state !== 'Returned') {
+        delete payload.loss;
+      }
+
+      if (isNaN(payload.quantity) || payload.quantity <= 0) {
+        throw new Error('Invalid quantity');
+      }
+
+      if (isNaN(payload.price_sell) || payload.price_sell <= 0) {
+        throw new Error('Invalid price');
+      }
+
+      await axios.post(`${API_BASE_URL}/api/commandes/`, payload, {
+        headers: { Authorization: `Bearer ${accessToken}` },
+      });
+
+      Swal.fire('Added!', 'The commande has been added.', 'success');
+      fetchCommandes();
+      handleAddModalClose();
+      setNewCommande({
+        product: null,
+        quantity: 1,
+        client_name: '',
+        client_phone: '',
+        client_address: '',
+        price_sell: '',
+        commande_state: '',
+        loss: ''
+      });
+    } catch (error) {
+      console.error('Failed to add commande:', error);
+      Swal.fire('Error', error.message || 'There was a problem adding the commande.', 'error');
     }
+  };
 
-    const payload = { ...newCommande, user: currentUserId };
-
-    if (payload.commande_state !== 'Returned') {
-      delete payload.loss;
+  const handleUpdateCommande = async () => {
+    try {
+      const payload = { ...editCommande };
+      if (payload.commande_state !== 'Retour') {
+        delete payload.loss;
+      }
+      await axios.put(`${API_BASE_URL}/commandes/update/${editCommande.id}/`, payload);
+      Swal.fire('Updated!', 'The commande has been updated.', 'success');
+      fetchCommandes();
+      handleEditModalClose();
+    } catch (error) {
+      console.error('Failed to update commande:', error);
+      Swal.fire('Error', 'There was a problem updating the commande.', 'error');
     }
-
-    if (isNaN(payload.quantity) || payload.quantity <= 0) {
-      throw new Error('Invalid quantity');
-    }
-
-    if (isNaN(payload.price_sell) || payload.price_sell <= 0) {
-      throw new Error('Invalid price');
-    }
-
-    await axios.post(`${API_BASE_URL}/api/commandes/`, payload, {
-      headers: { Authorization: `Bearer ${accessToken}` },
-    });
-
-    Swal.fire('Added!', 'The commande has been added.', 'success');
-    fetchCommandes(); // Refresh commandes list
-    handleAddModalClose(); // Close modal
-    setNewCommande({
-      product: null,
-      quantity: 1,
-      client_name: '',
-      client_phone: '',
-      client_address: '',
-      price_sell: '',
-      commande_state: '',
-      loss: '',
-    }); // Clear form fields
-  } catch (error) {
-    console.error('Failed to add commande:', error);
-    Swal.fire('Error', error.message || 'There was a problem adding the commande.', 'error');
-  }
-};
-
-  
-  
-  
-const handleUpdateCommande = async () => {
-  try {
-    // Include loss only if the state is 'Retour'
-    const payload = { ...editCommande };
-    if (payload.commande_state !== 'Retour') {
-      delete payload.loss;
-    }
-    await axios.put(`http://localhost:8000/api/commandes/update/${editCommande.id}/`, payload);
-    Swal.fire('Updated!', 'The commande has been updated.', 'success');
-    fetchCommandes();
-    handleEditModalClose();
-  } catch (error) {
-    console.error('Failed to update commande:', error);
-    Swal.fire('Error', 'There was a problem updating the commande.', 'error');
-  }
-};
+  };
 
   const handleDeleteCommande = async (id) => {
     Swal.fire({
@@ -182,11 +173,32 @@ const handleUpdateCommande = async () => {
     });
   };
 
+  // Filter commandes based on search query
+  const filteredCommandes = commandes.filter((commande) =>
+    commande.client_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    commande.client_phone.includes(searchQuery)
+  );
+
   return (
     <Box p={3}>
+      
       <Button variant="contained" color="primary" onClick={handleAddModalOpen}>
         Add Commande
       </Button>
+      <br/>
+      <br/>
+      <br/>
+      <TextField
+        label="Search by Name or Phone"
+        variant="outlined"
+        fullWidth
+        margin="normal"
+        value={searchQuery}
+        onChange={(e) => setSearchQuery(e.target.value)}
+      />
+      <br/>
+      <br/>
+
       <TableContainer component={Paper}>
         <Table>
           <TableHead>
@@ -203,7 +215,7 @@ const handleUpdateCommande = async () => {
             </TableRow>
           </TableHead>
           <TableBody>
-            {commandes.map((commande) => (
+            {filteredCommandes.map((commande) => (
               <TableRow key={commande.id}>
                 <TableCell>{products.find(p => p.id === commande.product)?.name || 'Unknown Product'}</TableCell>
                 <TableCell>{commande.quantity}</TableCell>
@@ -287,12 +299,12 @@ const handleUpdateCommande = async () => {
               value={newCommande.commande_state}
               onChange={handleInputChange}
             >
-              <MenuItem value="Pending">Pending</MenuItem>
-              <MenuItem value="Completed">Completed</MenuItem>
-              <MenuItem value="Returned">Returned</MenuItem>
+              <MenuItem value="En_attente">En_attente</MenuItem>
+              <MenuItem value="Payed">Payée</MenuItem>
+              <MenuItem value="Retour">Retour</MenuItem>
             </Select>
           </FormControl>
-          {newCommande.commande_state === 'Returned' && (
+          {newCommande.commande_state === 'Retour' && (
             <TextField
               label="Loss"
               name="loss"
@@ -374,8 +386,8 @@ const handleUpdateCommande = async () => {
               value={editCommande?.commande_state || ''}
               onChange={handleEditChange}
             >
-              <MenuItem value="En Attente">En Attente</MenuItem>
-              <MenuItem value="Validée">Validée</MenuItem>
+              <MenuItem value="En_Attente">En Attente</MenuItem>
+              <MenuItem value="Payed">Validée</MenuItem>
               <MenuItem value="Expédiée">Expédiée</MenuItem>
               <MenuItem value="Retour">Retour</MenuItem>
             </Select>

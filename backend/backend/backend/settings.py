@@ -65,6 +65,7 @@ INSTALLED_APPS = [
     'commandes',
     'django.contrib.staticfiles',
     'credits',
+    'reseau',
 
 
 ]

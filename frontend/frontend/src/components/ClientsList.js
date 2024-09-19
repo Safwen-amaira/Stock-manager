@@ -123,7 +123,7 @@ const ClientsList = () => {
 
   const calculatePayedPercentage = (commandes) => {
     if (commandes.length === 0) return 0;
-    const payedCount = commandes.filter((commande) => commande.commande_state === 'payed').length;
+    const payedCount = commandes.filter((commande) => commande.commande_state === 'Payed').length;
     return (payedCount / commandes.length) * 100;
   };
 

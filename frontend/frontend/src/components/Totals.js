@@ -39,7 +39,7 @@ const Totals = () => {
         let profits = 0;
         let loses = 0;
         let incomes = 0;
-        let stateCounts = { payed: 0, en_attente: 0, retours: 0 };
+        let stateCounts = { Payed: 0, en_attente: 0, retours: 0 };
 
         commandesData.forEach(commande => {
           const profit = parseFloat(commande.profit) || 0;
